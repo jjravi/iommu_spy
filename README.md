@@ -2,6 +2,14 @@
 
 This git repo contains tools to analyze the memory management of linux kernel 3.16.59
 
+su-devmem - disables /dev/mem 1MB restriction
+  `make clean; make -j`
+  `sudo insmod su-devmem.ko`
+
+dev_mem.c - read from a physical memory
+  `make clean; make -j`
+  `sudo ./dev_mem $((0x00000000)) r 4`
+
 This is from `linux_src/Documentation/x86/x86_64/mm.txt`:
 
 ```
@@ -42,4 +50,26 @@ range of 64Gb (arbitrarily set, can be raised if needed)
 0xffffffef00000000 - 0xffffffff00000000
 -Andi Kleen, Jul 2004
 ```
+
+The virtual address space is split between the kernel and user modes. The upper region
+specified by the PAGE_OFFSET is the virtual address space used by the kernel address.
+The lower 0x0 to PAGE_OFFSET is used by the user address space.
+The PAGE_OFFSET is set to 0xffff880000000000 in x86_64.  
+
+It is important to distinguish between the three kinds of virtual addresses that is present:
+* Kernel:
+  - Kernel Logical Address
+  - Kernel Virtual Address
+* User:
+  - User Virtual Address
+
+I know it is confusing to think about how a kernel can have a virtual address because the kernel
+is not a process, so logically you would think that it would have access to the entire physical memory
+and that all of its address are 'physical'. But once paging is enabled (with the CR0 register), all memory
+access are now translated including kernel addresses. And the difference between kernel logical and kernel 
+virtual addresses is due to a performance reason. 
+
+Kernel Logical Addresses are the normal address space of the kernel (kmalloc()). These virtual addresses
+are a fixed offset from their physical address. So, a virt: 0xffff880000000000 -> phys: 0x0000000000000000.
+This makes converting between the physical and virtual addresses very easy and fast.
 
